@@ -1,0 +1,48 @@
+import socket
+import threading
+
+# IP-адрес и порт сервера
+SERVER_IP = "127.0.0.1"
+SERVER_PORT = 12345
+
+# Создание сокета сервера
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((SERVER_IP, SERVER_PORT))
+server_socket.listen(1)
+print(f"Сервер запущен на {SERVER_IP}:{SERVER_PORT}")
+
+# Список клиентов
+clients = []
+
+# Функция для обработки подключения клиента
+def handle_client(client_socket, client_address):
+    print(f"Новое подключение: {client_address}")
+
+    # Добавление клиента в список
+    clients.append(client_socket)
+
+    while True:
+        try:
+            # Прием данных от клиента
+            data = client_socket.recv(1024)
+            if not data:
+                break
+
+            # Передача данных всем остальным клиентам
+            for client in clients:
+                if client != client_socket:
+                    client.sendall(data)
+        except Exception as e:
+            print(f"Ошибка при передаче данных клиенту {client_address}: {str(e)}")
+            break
+
+    # Удаление клиента из списка
+    clients.remove(client_socket)
+    client_socket.close()
+    print(f"Подключение с {client_address} завершено")
+
+# Ожидание подключений клиентов
+while True:
+    client_socket, client_address = server_socket.accept()
+    client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+    client_thread.start()
